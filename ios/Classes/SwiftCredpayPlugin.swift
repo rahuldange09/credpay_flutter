@@ -1,30 +1,72 @@
 import Flutter
 import UIKit
-public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
-    public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "credpay", binaryMessenger: registrar.messenger())
-        let instance = SwiftCredpayPlugin()
-        registrar.addMethodCallDelegate(instance, channel: channel)
-    }
 
+
+
+public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
+    
+    private static var methodChannel: FlutterMethodChannel?
+    
+    
+    public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+        SwiftCredpayPlugin.methodChannel?.setMethodCallHandler(nil)
+    }
+    
+    
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        
+        let instance = SwiftCredpayPlugin()
+        let channel = FlutterMethodChannel(name: "credpay", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(instance, channel: channel)
+        
+        registrar.addMethodCallDelegate(instance, channel: channel)
+        methodChannel = channel
+        
+    }
+    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        switch call.method as! String {
-            case "launchCredPay":
-            let url = (call.arguments as! NSDictionary).value(forKey: "url") as! String
-            if UIApplication.shared.canOpenURL(URL(string: url)) {
-                UIApplication.shared.open(url)
-                result("success")
-            }
-            else {
+        
+        switch call.method {
+        case "launchCredPay":
+            guard let url = (call.arguments as! NSDictionary).value(forKey: "url") as? String else {
                 result("fail")
+                return
             }
-            case "isAppInstalled":
-            let packageName = (call.arguments as! NSDictionary).value(forKey: "packageName") as! Bool
-            let isAppInstalled = UIApplication.shared.canOpenURL(URL(string: packageName)
-            result(isAppInstalled)
-            default:
-            return nil
+            launchCredPay(uri: url, result: result)
+        case "isAppInstalled":
+            guard let packageName = (call.arguments as! NSDictionary).value(forKey: "packageName") as? String else {
+                result(false)
+                return}
+            isAppInstalled(uriSchemName: packageName, result: result)
+        default: break
         }
     }
-
+    
+    private func launchCredPay(uri: String, result: @escaping FlutterResult) {
+        
+        if let url = URL(string: uri), UIApplication.shared.canOpenURL(url) {
+            if #available(iOS 10.0, *) {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            } else {
+                // Fallback on earlier versions
+            }
+            result("success")
+        }
+        else {
+            result("fail")
+        }
+        
+    }
+    
+    private func isAppInstalled(uriSchemName: String, result: @escaping FlutterResult) {
+        if let url = URL(string: uriSchemName), UIApplication.shared.canOpenURL(url) {
+            result(true)
+        }
+        else {
+            result(false)
+        }
+        
+        
+        
+    }
 }
