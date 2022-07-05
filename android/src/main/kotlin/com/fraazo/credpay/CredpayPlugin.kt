@@ -106,10 +106,10 @@ class CredpayPlugin : FlutterPlugin, MethodCallHandler, PluginRegistry.ActivityR
                 if (data != null) {
                     flutterResult?.success("success")
                 } else {
-                    flutterResult?.success("fail")
+                    flutterResult?.success("failure")
                 }
             } else {
-                flutterResult?.success("fail")
+                flutterResult?.success("failure")
             }
             return true
         }
