@@ -6,7 +6,7 @@ import UIKit
 public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
     
     private static var methodChannel: FlutterMethodChannel?
-    
+    private var flutterResult: FlutterResult?
     
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
         SwiftCredpayPlugin.methodChannel?.setMethodCallHandler(nil)
@@ -21,15 +21,16 @@ public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
         
         registrar.addMethodCallDelegate(instance, channel: channel)
         methodChannel = channel
+        registrar.addApplicationDelegate(instance)
+        UserDefaults.standard.set(false, forKey: "comeFromCredpay")
         
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        
         switch call.method {
         case "launchCredPay":
             guard let url = (call.arguments as! NSDictionary).value(forKey: "url") as? String else {
-                result("fail")
+                result("failure")
                 return
             }
             launchCredPay(uri: url, result: result)
@@ -43,17 +44,24 @@ public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
     }
     
     private func launchCredPay(uri: String, result: @escaping FlutterResult) {
-        
+        flutterResult = result
         if let url = URL(string: uri), UIApplication.shared.canOpenURL(url) {
             if #available(iOS 10.0, *) {
-                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                UserDefaults.standard.set(true, forKey: "comeFromCredpay")
+                UIApplication.shared.open(url, options: [:], 
+                    completionHandler: {
+                        (success) in
+                        
+                    })
             } else {
                 // Fallback on earlier versions
+                // let success = UIApplication.shared.openURL(url)
+                // result("success")
             }
-            result("success")
+            
         }
         else {
-            result("fail")
+            result("failure")
         }
         
     }
@@ -65,8 +73,15 @@ public class SwiftCredpayPlugin: NSObject, FlutterPlugin {
         else {
             result(false)
         }
-        
-        
-        
     }
+    public func applicationDidBecomeActive(_ application: UIApplication) {
+        let comeFromCredpay = UserDefaults.standard.bool(forKey: "comeFromCredpay")
+        if comeFromCredpay {
+            UserDefaults.standard.set(false, forKey: "comeFromCredpay")
+            flutterResult?("success")
+        }else{
+            flutterResult?("failure")
+        }
+    }
+    
 }
